@@ -12,6 +12,7 @@
 namespace Nelmio\ApiDocBundle\Describer;
 
 use Nelmio\ApiDocBundle\RouteDescriber\RouteDescriberInterface;
+use Nelmio\ApiDocBundle\RouteDescriber\RouteDescriberTrait;
 use Nelmio\ApiDocBundle\Util\ControllerReflector;
 use OpenApi\Annotations as OA;
 use Symfony\Component\Routing\RouteCollection;
@@ -19,6 +20,7 @@ use Symfony\Component\Routing\RouteCollection;
 final class RouteDescriber implements DescriberInterface, ModelRegistryAwareInterface
 {
     use ModelRegistryAwareTrait;
+    use RouteDescriberTrait;
 
     private $routeCollection;
 
@@ -42,7 +44,7 @@ final class RouteDescriber implements DescriberInterface, ModelRegistryAwareInte
             return;
         }
 
-        foreach ($this->routeCollection->all() as $route) {
+        foreach ($this->routeCollection->all() as $routeName => $route) {
             if (!$route->hasDefault('_controller')) {
                 continue;
             }
@@ -59,6 +61,13 @@ final class RouteDescriber implements DescriberInterface, ModelRegistryAwareInte
                     $describer->describe($api, $route, $method);
                 }
             }
+
+            $operations = self::getOperations($api, $route);
+            if (count($operations) > 1) {
+                continue;
+            }
+            $operation = $operations[0];
+            $operation->operationId = OA\UNDEFINED === $operation->operationId ? $routeName : $operation->operationId;
         }
     }
 }
